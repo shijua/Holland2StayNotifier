@@ -162,6 +162,7 @@ cython_debug/
 
 
 h2snotifier/config.json
+h2snotifier/.api_403_alerted
 h2snotifier/houses.db
 h2snotifier/house_sync.log
 h2snotifier/cron.log

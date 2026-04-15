@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import cloudscraper
 import requests
@@ -14,6 +15,7 @@ debug_telegram = TelegramBot(apikey=TELEGRAM_API_KEY, chat_id=DEBUGGING_CHAT_ID)
 scraper_client = cloudscraper.create_scraper(
     browser={"browser": "chrome", "platform": "linux", "mobile": False}
 )
+API_403_ALERT_FLAG = Path(__file__).resolve().with_name(".api_403_alerted")
 
 
 def generate_payload(cities, page_size):
@@ -274,6 +276,30 @@ Contract type: {house['contract_type']}
 
 
 # Define the GraphQL query payload
+def send_403_alert_once(content_type):
+    if API_403_ALERT_FLAG.exists():
+        return
+
+    try:
+        content_type_suffix = f" Content-Type: {content_type}." if content_type else ""
+        debug_telegram.send_simple_msg(
+            "Holland2Stay API is returning HTTP 403. "
+            "The scraper may be blocked by Cloudflare. "
+            "This alert will only be sent once until the scraper recovers."
+            f"{content_type_suffix}"
+        )
+    except Exception as error:
+        logging.error("Failed to send one-time 403 Telegram alert")
+        logging.error(str(error))
+    finally:
+        API_403_ALERT_FLAG.touch()
+
+
+def clear_403_alert_flag():
+    if API_403_ALERT_FLAG.exists():
+        API_403_ALERT_FLAG.unlink()
+
+
 def scrape(cities=[], page_size=30):
     payload = generate_payload(cities, page_size)
     response = scraper_client.post(
@@ -281,6 +307,8 @@ def scrape(cities=[], page_size=30):
     )
     content_type = response.headers.get("content-type", "")
     if response.status_code != 200:
+        if response.status_code == 403:
+            send_403_alert_once(content_type)
         raise RuntimeError(
             f"Holland2Stay API returned HTTP {response.status_code} "
             f"with content-type {content_type}: {response.text[:200]!r}"
@@ -293,6 +321,8 @@ def scrape(cities=[], page_size=30):
             f"Holland2Stay API returned non-JSON content-type {content_type}: "
             f"{response.text[:200]!r}"
         ) from error
+
+    clear_403_alert_flag()
 
     cities_dict = {}
     for c in cities:
