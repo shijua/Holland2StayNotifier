@@ -24,10 +24,32 @@ Eindhoven, Helmond, Den Bosch, Tilberg -> @h2snotify_eindhoven
 Arnhem, Nijmegen  -> @h2snotify_arnhem   
 
 ## Usage:
-Add a cron job to frequently run the project. Example:
+`cloudscraper` is used because Holland2Stay's GraphQL endpoint is now protected by Cloudflare and plain `requests` gets HTTP 403.
+
+To run once:
 ```bash
-crontab -e
-*/5 * * * * cd /home/jef/projects/Holland2StayNotifier/h2snotifier/ && bash ./run.sh
+cd h2snotifier
+./run.sh
+```
+
+To install a cron job with a small random delay before each run:
+```bash
+cd h2snotifier
+./install_cron.sh
+```
+
+The default schedule is every 10 minutes and each run sleeps for a random 0-180 seconds first to avoid a perfectly fixed request pattern.
+
+You can change the schedule or jitter:
+```bash
+cd h2snotifier
+JITTER_MAX_SECONDS=300 ./install_cron.sh "*/15 * * * *"
+```
+
+To stop the cron job and stop any currently running notifier process:
+```bash
+cd h2snotifier
+./stop.sh
 ```
 
 

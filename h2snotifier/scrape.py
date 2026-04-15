@@ -1,5 +1,6 @@
 import logging
 
+import cloudscraper
 import requests
 
 from dotenv import dotenv_values
@@ -10,6 +11,9 @@ TELEGRAM_API_KEY = env.get("TELEGRAM_API_KEY")
 DEBUGGING_CHAT_ID = env.get("DEBUGGING_CHAT_ID")
 
 debug_telegram = TelegramBot(apikey=TELEGRAM_API_KEY, chat_id=DEBUGGING_CHAT_ID)
+scraper_client = cloudscraper.create_scraper(
+    browser={"browser": "chrome", "platform": "linux", "mobile": False}
+)
 
 
 def generate_payload(cities, page_size):
@@ -272,8 +276,24 @@ Contract type: {house['contract_type']}
 # Define the GraphQL query payload
 def scrape(cities=[], page_size=30):
     payload = generate_payload(cities, page_size)
-    response = requests.post("https://api.holland2stay.com/graphql/", json=payload)
-    data = response.json()["data"]
+    response = scraper_client.post(
+        "https://api.holland2stay.com/graphql/", json=payload, timeout=30
+    )
+    content_type = response.headers.get("content-type", "")
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Holland2Stay API returned HTTP {response.status_code} "
+            f"with content-type {content_type}: {response.text[:200]!r}"
+        )
+
+    try:
+        data = response.json()["data"]
+    except ValueError as error:
+        raise RuntimeError(
+            f"Holland2Stay API returned non-JSON content-type {content_type}: "
+            f"{response.text[:200]!r}"
+        ) from error
+
     cities_dict = {}
     for c in cities:
         cities_dict[c] = []
