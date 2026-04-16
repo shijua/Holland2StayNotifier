@@ -15,7 +15,8 @@ debug_telegram = TelegramBot(apikey=TELEGRAM_API_KEY, chat_id=DEBUGGING_CHAT_ID)
 scraper_client = cloudscraper.create_scraper(
     browser={"browser": "chrome", "platform": "linux", "mobile": False}
 )
-API_403_ALERT_FLAG = Path(__file__).resolve().with_name(".api_403_alerted")
+API_403_ALERT_FLAG = Path(__file__).resolve().with_name("api_403_alerted.flag")
+LEGACY_API_403_ALERT_FLAG = Path(__file__).resolve().with_name(".api_403_alerted")
 
 
 def generate_payload(cities, page_size):
@@ -276,8 +277,17 @@ Contract type: {house['contract_type']}
 
 
 # Define the GraphQL query payload
+def has_403_alert_flag():
+    return API_403_ALERT_FLAG.exists() or LEGACY_API_403_ALERT_FLAG.exists()
+
+
+def mark_403_alert_flag():
+    LEGACY_API_403_ALERT_FLAG.unlink(missing_ok=True)
+    API_403_ALERT_FLAG.touch()
+
+
 def send_403_alert_once(content_type):
-    if API_403_ALERT_FLAG.exists():
+    if has_403_alert_flag():
         return
 
     try:
@@ -292,12 +302,24 @@ def send_403_alert_once(content_type):
         logging.error("Failed to send one-time 403 Telegram alert")
         logging.error(str(error))
     finally:
-        API_403_ALERT_FLAG.touch()
+        mark_403_alert_flag()
 
 
 def clear_403_alert_flag():
-    if API_403_ALERT_FLAG.exists():
-        API_403_ALERT_FLAG.unlink()
+    if not has_403_alert_flag():
+        return
+
+    try:
+        debug_telegram.send_simple_msg(
+            "Holland2Stay API has recovered after the previous HTTP 403. "
+            "The scraper is working normally again."
+        )
+    except Exception as error:
+        logging.error("Failed to send 403 recovery Telegram alert")
+        logging.error(str(error))
+    finally:
+        API_403_ALERT_FLAG.unlink(missing_ok=True)
+        LEGACY_API_403_ALERT_FLAG.unlink(missing_ok=True)
 
 
 def scrape(cities=[], page_size=30):
