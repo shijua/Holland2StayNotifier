@@ -3,8 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 MARKER="h2snotifier-random-cron"
-SCHEDULE="${1:-*/10 * * * *}"
-JITTER_MAX_SECONDS="${JITTER_MAX_SECONDS:-180}"
+SCHEDULE="${1:-*/5 * * * *}"
+JITTER_MAX_SECONDS="${JITTER_MAX_SECONDS:-60}"
 CRON_CMD="JITTER_MAX_SECONDS=${JITTER_MAX_SECONDS} ${SCRIPT_DIR}/cron_run.sh"
 
 CURRENT_CRONTAB="$(crontab -l 2>/dev/null || true)"

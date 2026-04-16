@@ -6,7 +6,7 @@ cd "$SCRIPT_DIR"
 
 LOCK_FILE="/tmp/h2snotifier.lock"
 LOG_FILE="$SCRIPT_DIR/cron.log"
-JITTER_MAX_SECONDS="${JITTER_MAX_SECONDS:-180}"
+JITTER_MAX_SECONDS="${JITTER_MAX_SECONDS:-60}"
 
 log() {
   printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" >> "$LOG_FILE"

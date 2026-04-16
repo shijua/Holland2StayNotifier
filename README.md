@@ -38,12 +38,12 @@ cd h2snotifier
 ./install_cron.sh
 ```
 
-The default schedule is every 10 minutes and each run sleeps for a random 0-180 seconds first to avoid a perfectly fixed request pattern.
+The default schedule is every 5 minutes and each run sleeps for a random 0-60 seconds first to avoid a perfectly fixed request pattern.
 
 You can change the schedule or jitter:
 ```bash
 cd h2snotifier
-JITTER_MAX_SECONDS=300 ./install_cron.sh "*/15 * * * *"
+JITTER_MAX_SECONDS=120 ./install_cron.sh "*/5 * * * *"
 ```
 
 To stop the cron job and stop any currently running notifier process:
